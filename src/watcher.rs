@@ -12,7 +12,7 @@ use std::{
     marker::{Send, Sync},
     net::SocketAddr,
     ops::Deref,
-    sync::Arc,
+    sync::{Arc, RwLock},
 };
 use strum::IntoEnumIterator;
 use tokio::{sync::broadcast, task::JoinHandle};
@@ -20,7 +20,7 @@ use tower::make::Shared;
 
 #[derive(Clone)]
 pub struct Watcher<C: Hash + Eq + Send + Sync + Serialize> {
-    metric_registry: Arc<Registry>,
+    metrics_registry: Arc<RwLock<Registry>>,
     readiness_probe: ReadinessProbe<C>,
     termination_signal: broadcast::Sender<()>,
 }
@@ -29,16 +29,18 @@ impl<C: 'static + Clone + IntoEnumIterator + Hash + Eq + Sync + Send + Serialize
     for Watcher<C>
 {
     fn default() -> Self {
-        let mut metric_registry = <Registry>::default();
+        let metrics_registry = Arc::new(RwLock::new(<Registry>::default()));
         let readiness_probe = ReadinessProbe::default();
         let (termination_signal, _) = broadcast::channel::<()>(1);
 
-        metric_registry.register("up", "Overall system readiness", readiness_probe.up.clone());
-
-        let metric_registry = Arc::new(metric_registry);
+        metrics_registry.write().unwrap().register(
+            "up",
+            "Overall system readiness",
+            readiness_probe.up.clone(),
+        );
 
         Self {
-            metric_registry,
+            metrics_registry,
             readiness_probe,
             termination_signal,
         }
@@ -46,22 +48,16 @@ impl<C: 'static + Clone + IntoEnumIterator + Hash + Eq + Sync + Send + Serialize
 }
 
 impl<C: 'static + Clone + IntoEnumIterator + Hash + Eq + Sync + Send + Serialize> Watcher<C> {
-    pub fn sub_registry<P: std::convert::AsRef<str>>(
-        &mut self,
-        prefix: P,
-    ) -> Result<&mut Registry> {
-        match Arc::get_mut(&mut self.metric_registry) {
-            Some(registry) => Ok(registry.sub_registry_with_prefix(prefix)),
-            None => Err(anyhow!("Cannot lock registry")),
-        }
+    pub fn metrics_registry(&self) -> std::sync::RwLockWriteGuard<'_, Registry> {
+        self.metrics_registry.write().unwrap()
     }
 
-    pub fn readiness_conditions(&self) -> ReadinessProbe<C> {
+    pub fn readiness_probe(&self) -> ReadinessProbe<C> {
         self.readiness_probe.clone()
     }
 
     pub async fn start_server(&mut self, address: SocketAddr) -> Result<JoinHandle<()>> {
-        let registry = self.metric_registry.clone();
+        let registry = self.metrics_registry.clone();
         let readiness_conditions = self.readiness_probe.clone();
         let mut termination_signal = self.termination_signal.subscribe();
 
@@ -75,7 +71,7 @@ impl<C: 'static + Clone + IntoEnumIterator + Hash + Eq + Sync + Send + Serialize
                         Ok::<_, anyhow::Error>(match req.uri().path() {
                             "/metrics" => {
                                 let mut buffer = vec![];
-                                encode(&mut buffer, &registry)?;
+                                encode(&mut buffer, &registry.read().unwrap())?;
                                 Response::builder()
                                     .status(StatusCode::OK)
                                     .header(CONTENT_TYPE, "text/plain")
