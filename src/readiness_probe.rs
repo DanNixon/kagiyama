@@ -8,6 +8,10 @@ use std::{
     sync::{Arc, RwLock},
 };
 use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
+
+#[derive(Serialize, PartialEq, Eq, Hash, EnumIter)]
+pub enum AlwaysReady {}
 
 #[derive(Clone)]
 pub struct ReadinessProbe<C: Sync + Send> {
@@ -18,31 +22,36 @@ pub struct ReadinessProbe<C: Sync + Send> {
 impl<C: IntoEnumIterator + Hash + Eq + Send + Sync + Serialize> Default for ReadinessProbe<C> {
     fn default() -> Self {
         let conditions = Arc::new(RwLock::new(C::iter().map(|c| (c, false)).collect()));
-
         let up = Box::new(Gauge::<u64>::default());
-        up.set(0);
 
-        Self { conditions, up }
+        let probe = Self { conditions, up };
+        probe.update_up_metric();
+
+        probe
     }
 }
 
 impl<C: IntoEnumIterator + Hash + Eq + Send + Sync + Serialize> ReadinessProbe<C> {
     pub(crate) fn is_ready(&self) -> bool {
-        self.conditions
-            .read()
-            .unwrap()
-            .iter()
-            .map(|(_, v)| v)
-            .all(|v| *v)
+        let conditions = self.conditions.read().unwrap();
+        if conditions.is_empty() {
+            true
+        } else {
+            conditions.iter().map(|(_, v)| v).all(|v| *v)
+        }
+    }
+
+    fn update_up_metric(&self) {
+        self.up.set(match self.is_ready() {
+            true => 1,
+            false => 0,
+        });
     }
 
     fn set_condition_readiness(&mut self, condition: C, ready: bool) {
         self.conditions.write().unwrap().insert(condition, ready);
         if ready {
-            self.up.set(match self.is_ready() {
-                true => 1,
-                false => 0,
-            });
+            self.update_up_metric();
         } else {
             self.up.set(0);
         }
@@ -61,7 +70,6 @@ impl<C: IntoEnumIterator + Hash + Eq + Send + Sync + Serialize> ReadinessProbe<C
 #[cfg(test)]
 mod tests {
     use super::*;
-    use strum_macros::EnumIter;
 
     #[derive(Serialize, PartialEq, Eq, Hash, EnumIter)]
     enum ReadinessConditions {
@@ -91,5 +99,12 @@ mod tests {
         rc.mark_not_ready(ReadinessConditions::Two);
         assert_eq!(rc.is_ready(), false);
         assert_eq!(rc.up.get(), 0);
+    }
+
+    #[test]
+    fn test_always_ready() {
+        let rc = ReadinessProbe::<AlwaysReady>::default();
+        assert_eq!(rc.is_ready(), true);
+        assert_eq!(rc.up.get(), 1);
     }
 }
