@@ -43,5 +43,8 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
-      - name: Build and Test
+      - name: Build
+        run: cargo test --all-targets
+
+      - name: Test
         run: cargo test
