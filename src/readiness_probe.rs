@@ -10,7 +10,7 @@ use std::{
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-#[derive(Serialize, PartialEq, Eq, Hash, EnumIter)]
+#[derive(Clone, Serialize, PartialEq, Eq, Hash, EnumIter)]
 pub enum AlwaysReady {}
 
 #[derive(Clone)]
