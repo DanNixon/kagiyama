@@ -10,6 +10,9 @@ readme = "README.md"
 homepage = "https://github.com/DanNixon/kagiyama"
 repository = "https://github.com/DanNixon/kagiyama"
 
+categories = ["development-tools::debugging"]
+keywords = ["metrics", "openmetrics", "metrics-gathering", "prometheus"]
+
 [dependencies]
 anyhow = "1.0.57"
 hyper = { version = "0.14.20", features = ["server", "http1", "tcp"] }
