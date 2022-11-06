@@ -1,5 +1,4 @@
 use super::readiness_probe::ReadinessProbe;
-use anyhow::{anyhow, Result};
 use hyper::{
     header::CONTENT_TYPE, service::service_fn, Body, Request, Response, Server, StatusCode,
 };
@@ -56,12 +55,12 @@ impl<C: 'static + Clone + IntoEnumIterator + Hash + Eq + Sync + Send + Serialize
         self.readiness_probe.clone()
     }
 
-    pub async fn start_server(&mut self, address: SocketAddr) -> Result<JoinHandle<()>> {
+    pub async fn start_server(&mut self, address: SocketAddr) -> JoinHandle<()> {
         let registry = self.metrics_registry.clone();
         let readiness_conditions = self.readiness_probe.clone();
         let mut termination_signal = self.termination_signal.subscribe();
 
-        Ok(tokio::spawn(async move {
+        tokio::spawn(async move {
             let server =
                 Server::bind(&address).serve(Shared::new(service_fn(move |req: Request<Body>| {
                     let registry = registry.clone();
@@ -116,15 +115,11 @@ impl<C: 'static + Clone + IntoEnumIterator + Hash + Eq + Sync + Send + Serialize
             if let Err(e) = graceful.await {
                 log::error!("Error running server: {}", e);
             }
-        }))
+        })
     }
 
-    pub fn stop_server(&mut self) -> Result<()> {
+    pub fn stop_server(&mut self) -> Result<usize, broadcast::error::SendError<()>> {
         log::trace!("Requesting server shutdown");
-
-        match self.termination_signal.send(()) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(anyhow!(e)),
-        }
+        self.termination_signal.send(())
     }
 }

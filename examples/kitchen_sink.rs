@@ -16,7 +16,7 @@ enum ReadinessConditions {
 async fn main() -> Result<()> {
     let mut watcher = Watcher::<ReadinessConditions>::default();
 
-    watcher.start_server("127.0.0.1:9090".parse()?).await?;
+    watcher.start_server("127.0.0.1:9090".parse()?).await;
 
     // Simulate a subsystem starting up
     let mut readiness_conditions = watcher.readiness_probe();

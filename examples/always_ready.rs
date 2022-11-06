@@ -7,7 +7,7 @@ use tokio::time::{self, Duration};
 async fn main() -> Result<()> {
     let mut watcher = Watcher::<AlwaysReady>::default();
 
-    watcher.start_server("127.0.0.1:9090".parse()?).await?;
+    watcher.start_server("127.0.0.1:9090".parse()?).await;
 
     // Simulate a metric
     {
