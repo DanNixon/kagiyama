@@ -69,7 +69,7 @@ impl<C: 'static + Clone + IntoEnumIterator + Hash + Eq + Sync + Send + Serialize
                     async move {
                         Ok::<_, anyhow::Error>(match req.uri().path() {
                             "/metrics" => {
-                                let mut buffer = vec![];
+                                let mut buffer = String::new();
                                 encode(&mut buffer, &registry.read().unwrap())?;
                                 Response::builder()
                                     .status(StatusCode::OK)

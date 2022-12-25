@@ -16,15 +16,15 @@ pub enum AlwaysReady {}
 #[derive(Clone)]
 pub struct ReadinessProbe<C: Sync + Send> {
     pub(crate) conditions: Arc<RwLock<HashMap<C, bool>>>,
-    pub(crate) up: Box<Gauge<u64>>,
+    pub(crate) up: Gauge<i64>,
 }
 
 impl<C: IntoEnumIterator + Hash + Eq + Send + Sync + Serialize> Default for ReadinessProbe<C> {
     fn default() -> Self {
         let conditions = Arc::new(RwLock::new(C::iter().map(|c| (c, false)).collect()));
-        let up = Box::new(Gauge::<u64>::default());
+        let up = Gauge::<i64>::default();
 
-        let probe = Self { conditions, up };
+        let mut probe = Self { conditions, up };
         probe.update_up_metric();
 
         probe
@@ -41,7 +41,7 @@ impl<C: IntoEnumIterator + Hash + Eq + Send + Sync + Serialize> ReadinessProbe<C
         }
     }
 
-    fn update_up_metric(&self) {
+    fn update_up_metric(&mut self) {
         self.up.set(match self.is_ready() {
             true => 1,
             false => 0,
