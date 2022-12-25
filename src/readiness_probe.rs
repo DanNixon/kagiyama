@@ -81,30 +81,30 @@ mod tests {
     #[test]
     fn test_basic() {
         let mut rc = ReadinessProbe::<ReadinessConditions>::default();
-        assert_eq!(rc.is_ready(), false);
+        assert!(!rc.is_ready());
         assert_eq!(rc.up.get(), 0);
 
         rc.mark_ready(ReadinessConditions::One);
-        assert_eq!(rc.is_ready(), false);
+        assert!(!rc.is_ready());
         assert_eq!(rc.up.get(), 0);
 
         rc.mark_ready(ReadinessConditions::Two);
-        assert_eq!(rc.is_ready(), false);
+        assert!(!rc.is_ready());
         assert_eq!(rc.up.get(), 0);
 
         rc.mark_ready(ReadinessConditions::Three);
-        assert_eq!(rc.is_ready(), true);
+        assert!(rc.is_ready());
         assert_eq!(rc.up.get(), 1);
 
         rc.mark_not_ready(ReadinessConditions::Two);
-        assert_eq!(rc.is_ready(), false);
+        assert!(!rc.is_ready());
         assert_eq!(rc.up.get(), 0);
     }
 
     #[test]
     fn test_always_ready() {
         let rc = ReadinessProbe::<AlwaysReady>::default();
-        assert_eq!(rc.is_ready(), true);
+        assert!(rc.is_ready());
         assert_eq!(rc.up.get(), 1);
     }
 }
