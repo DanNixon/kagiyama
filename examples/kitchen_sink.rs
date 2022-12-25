@@ -57,7 +57,7 @@ async fn main() -> Result<()> {
                 registry.register(
                     "ticks",
                     "A demo metric, counts up every second",
-                    Box::new(ticks.clone()),
+                    ticks.clone(),
                 );
             }
 
@@ -82,7 +82,7 @@ async fn main() -> Result<()> {
                 registry.register(
                     "ticks",
                     "A demo metric, counts up every two seconds",
-                    Box::new(ticks.clone()),
+                    ticks.clone(),
                 );
             }
 
