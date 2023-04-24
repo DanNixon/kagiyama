@@ -1,6 +1,5 @@
 use anyhow::Result;
-use kagiyama::Watcher;
-use prometheus_client::metrics::counter::Counter;
+use kagiyama::{prometheus::metrics::counter::Counter, Watcher};
 use serde::Serialize;
 use strum_macros::EnumIter;
 use tokio::time::{self, Duration};

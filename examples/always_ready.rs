@@ -1,6 +1,5 @@
 use anyhow::Result;
-use kagiyama::{AlwaysReady, Watcher};
-use prometheus_client::metrics::counter::Counter;
+use kagiyama::{prometheus::metrics::counter::Counter, AlwaysReady, Watcher};
 use tokio::time::{self, Duration};
 
 #[tokio::main]
